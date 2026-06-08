@@ -1,0 +1,30 @@
+FROM python:3.11-alpine AS base
+
+RUN addgroup -g 1000 secureclaw && \
+    adduser -D -u 1000 -G secureclaw secureclaw
+
+RUN apk add --no-cache \
+    bash \
+    git \
+    openssh-client \
+    curl \
+    jq \
+    && rm -rf /var/cache/apk/*
+
+RUN mkdir -p /workspace /tmp && \
+    chown -R secureclaw:secureclaw /workspace /tmp
+
+RUN chmod 1777 /tmp
+
+FROM base AS final
+
+COPY --chown=secureclaw:secureclaw docker/requirements-sandbox.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
+    rm /tmp/requirements.txt
+
+USER secureclaw:secureclaw
+WORKDIR /workspace
+
+# Default: no capabilities beyond standard user
+# Capability dropping happens at container runtime via Docker security flags
+ENTRYPOINT ["/bin/bash", "-c"]

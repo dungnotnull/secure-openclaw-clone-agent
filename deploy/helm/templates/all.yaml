@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "secureclaw-agent.fullname" . }}-api
+  labels:
+    app.kubernetes.io/component: api
+    {{- include "secureclaw-agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: api
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.apiPort }}
+              name: http
+          env:
+            - name: LLM_PROVIDER
+              value: {{ .Values.env.LLM_PROVIDER | quote }}
+            - name: DOCKER_MEMORY_LIMIT
+              value: {{ .Values.env.DOCKER_MEMORY_LIMIT | quote }}
+            - name: DOCKER_CPU_LIMIT
+              value: {{ .Values.env.DOCKER_CPU_LIMIT | quote }}
+            - name: JWT_EXPIRY_MINUTES
+              value: {{ .Values.env.JWT_EXPIRY_MINUTES | quote }}
+            - name: PII_SCRUB_ENABLED
+              value: {{ .Values.env.PII_SCRUB_ENABLED | quote }}
+            - name: PROMPT_INJECTION_DETECT_ENABLED
+              value: {{ .Values.env.PROMPT_INJECTION_DETECT_ENABLED | quote }}
+          envFrom:
+            - secretRef:
+                name: {{ include "secureclaw-agent.fullname" . }}-secrets
+          resources:
+            limits:
+              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.resources.limits.cpu }}
+            requests:
+              memory: {{ .Values.resources.requests.memory }}
+              cpu: {{ .Values.resources.requests.cpu }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "secureclaw-agent.fullname" . }}-data
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "secureclaw-agent.fullname" . }}-api
+spec:
+  selector:
+    app.kubernetes.io/component: api
+  ports:
+    - port: {{ .Values.service.apiPort }}
+      targetPort: http
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "secureclaw-agent.fullname" . }}-frontend
+  labels:
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.image }}:{{ .Values.frontend.tag }}"
+          ports:
+            - containerPort: {{ .Values.service.frontendPort }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "secureclaw-agent.fullname" . }}-frontend
+spec:
+  selector:
+    app.kubernetes.io/component: frontend
+  ports:
+    - port: {{ .Values.service.frontendPort }}
+      targetPort: {{ .Values.service.frontendPort }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "secureclaw-agent.fullname" . }}-data
+spec:
+  accessModes:
+    - {{ .Values.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "secureclaw-agent.fullname" . }}-secrets
+type: Opaque
+data:
+  ANTHROPIC_API_KEY: {{ .Values.secrets.anthropicApiKey | default "" | b64enc | quote }}
+  OPENAI_API_KEY: {{ .Values.secrets.openaiApiKey | default "" | b64enc | quote }}
+  JWT_SECRET: {{ .Values.secrets.jwtSecret | default (randAlphaNum 32) | b64enc | quote }}

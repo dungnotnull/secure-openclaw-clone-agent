@@ -1,0 +1,41 @@
+replicaCount: 1
+
+image:
+  repository: secureclaw-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+frontend:
+  image: secureclaw-frontend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  apiPort: 8000
+  frontendPort: 80
+
+resources:
+  limits:
+    memory: "1024Mi"
+    cpu: "1000m"
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+
+persistence:
+  enabled: true
+  size: 10Gi
+  accessMode: ReadWriteOnce
+
+env:
+  LLM_PROVIDER: "claude"
+  DOCKER_MEMORY_LIMIT: "512m"
+  DOCKER_CPU_LIMIT: "1.0"
+  JWT_EXPIRY_MINUTES: "60"
+  PII_SCRUB_ENABLED: "true"
+  PROMPT_INJECTION_DETECT_ENABLED: "true"
+
+ingress:
+  enabled: false
+  className: "nginx"
+  host: secureclaw.local

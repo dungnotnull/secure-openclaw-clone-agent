@@ -1,0 +1,13 @@
+apiVersion: v2
+name: secureclaw-agent
+description: Security-hardened AI task agent runtime with Zero-Trust sandboxing
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - ai-agent
+  - security
+  - sandbox
+  - llm
+maintainers:
+  - name: SecureClawAgent Team

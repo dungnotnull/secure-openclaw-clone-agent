@@ -1,0 +1,14 @@
+[project]
+name = "secureclaw-agent"
+version = "0.1.0"
+description = "Security-hardened AI task agent runtime with Zero-Trust sandboxing and full action revert capability"
+requires-python = ">=3.11"
+readme = "CLAUDE.md"
+license = { text = "MIT" }
+
+[tool.setuptools.packages.find]
+include = ["backend*"]
+
+[project.optional-dependencies]
+ml = ["transformers>=4.41.0", "torch>=2.3.0", "sentence-transformers>=2.7.0"]
+dev = ["bandit>=1.7.8", "semgrep>=1.75.0", "ruff>=0.4.0"]
